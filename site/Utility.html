@@ -29,6 +29,7 @@
     .mint-bg { background-color: var(--sig-mint); }
     .mint-text { color: var(--sig-mint-dark); }
 
+    /* 타임라인 레이아웃 */
     .time-label-col {
       width: 80px;
       position: relative;
@@ -63,6 +64,9 @@
       background-color: rgba(12, 239, 211, 0.2);
     }
 
+    /* 주말 배경색: 차분한 회색 */
+    .col-sat, .col-sun { background-color: #f1f5f9 !important; }
+
     .event-card {
       position: absolute;
       left: 4px;
@@ -89,19 +93,7 @@
     .sidebar-scroll::-webkit-scrollbar { width: 4px; }
     .sidebar-scroll::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
 
-    #startPage { background-color: var(--bg-neutral); }
     .hidden-view { display: none !important; }
-
-    .loader {
-      border: 2px solid #f3f3f3;
-      border-top: 2px solid var(--sig-mint);
-      border-radius: 50%;
-      width: 14px;
-      height: 14px;
-      animation: spin 1s linear infinite;
-      display: inline-block;
-    }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
     .collapsible-content {
       max-height: 800px;
@@ -131,19 +123,83 @@
     .day-header-cell {
       cursor: pointer;
       transition: all 0.2s;
+      background-color: #fff;
     }
     .day-header-cell.selected {
-      background-color: var(--pastel-mint);
+      background-color: var(--pastel-mint) !important;
       border-bottom: 3px solid var(--sig-mint);
+    }
+
+    .color-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.2s;
+    }
+    .color-dot.active {
+      border-color: #334155;
+      transform: scale(1.2);
+    }
+
+    .day-selector {
+      display: flex;
+      gap: 4px;
+    }
+    .day-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .day-btn.active {
+      background-color: var(--sig-mint);
+      border-color: var(--sig-mint);
+      color: #000;
+    }
+
+    button:disabled {
+      background-color: #e2e8f0 !important;
+      color: #94a3b8 !important;
+      cursor: not-allowed !important;
+      opacity: 0.6;
+    }
+
+    /* 공식 스케줄 리스트 스타일 */
+    .schedule-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: white;
+      border: 1px solid #f1f5f9;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      transition: all 0.2s;
+    }
+    .schedule-item.checked {
+      opacity: 0.5;
+      text-decoration: line-through;
+      background: #f8fafc;
     }
   </style>
 </head>
 <body class="h-screen flex flex-col">
 
 <!-- Start Page -->
-<div id="startPage" class="fixed inset-0 z-[100] flex flex-col items-center justify-center text-center p-6 transition-opacity duration-500">
+<div id="startPage" class="fixed inset-0 z-[100] flex flex-col items-center justify-center text-center p-6 transition-opacity duration-500 bg-white">
   <div class="mb-12 flex flex-col items-center">
-    <h1 class="text-7xl font-black mb-4 tracking-tighter text-slate-800">WoowaLog</h1>
+    <h1 class="text-7xl font-black mb-3 tracking-tighter text-slate-800">WoowaLog</h1>
     <p class="text-xl text-slate-500 font-medium mb-6">우아한테크코스 성장을 위한 최고의 파트너</p>
     <div id="dayCounter" class="bg-white px-6 py-3 rounded-full shadow-sm border border-slate-100 mt-2">
       <span class="text-sm font-bold text-slate-400 uppercase tracking-wider">Today is</span>
@@ -181,8 +237,7 @@
 
     <div class="flex items-center gap-4">
       <div id="syncStatus" class="hidden flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
-        <span id="syncLoader" class="loader hidden"></span>
-        <i id="syncIcon" class="fas fa-check-circle"></i>
+        <i class="fas fa-check-circle"></i>
         <span id="syncText">연동 완료</span>
       </div>
       <button id="homeBtn" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-xl transition text-slate-600 font-bold text-sm">
@@ -193,23 +248,24 @@
   </header>
 
   <div class="flex flex-1 overflow-hidden relative">
-    <!-- Sidebar -->
     <aside id="sidebar" class="bg-white border-r flex flex-col p-6 sidebar-scroll overflow-y-auto shrink-0 z-40">
+      <!-- Woowacourse Schedule Checklist (Replaced Goal Section) -->
       <div class="mb-6">
-        <button onclick="toggleSection('goalContent', 'goalIcon')" class="w-full flex justify-between items-center group mb-3 text-left">
+        <button onclick="toggleSection('officialScheduleContent', 'scheduleIcon')" class="w-full flex justify-between items-center group mb-3 text-left">
           <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">
-            <span id="sidebarDateLabelGoal" class="text-slate-800 mr-1">오늘</span>의 목표
+            <span id="sidebarDateLabelSchedule" class="text-slate-800 mr-1">오늘</span>의 우테코 스케줄
           </h2>
-          <i id="goalIcon" class="fas fa-chevron-down text-xs text-slate-300 group-hover:text-slate-500 rotate-icon"></i>
+          <i id="scheduleIcon" class="fas fa-chevron-down text-xs text-slate-300 group-hover:text-slate-500 rotate-icon"></i>
         </button>
-        <div id="goalContent" class="collapsible-content">
-          <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 relative group">
-            <textarea id="dailyGoalText" class="w-full bg-transparent text-sm text-slate-700 font-medium resize-none border-none focus:ring-0 p-0" rows="2" placeholder="이날의 다짐을 적어보세요."></textarea>
-            <i class="fas fa-pen absolute top-2 right-2 text-slate-300 text-xs opacity-0 group-hover:opacity-100 transition"></i>
+        <div id="officialScheduleContent" class="collapsible-content space-y-2">
+          <div id="officialScheduleList" class="space-y-2">
+            <!-- Schedules will be auto-generated here -->
+            <p class="text-xs text-slate-400 italic py-2">공식 일정이 없습니다.</p>
           </div>
         </div>
       </div>
 
+      <!-- Personal Checklist -->
       <div class="mb-8">
         <div class="w-full flex justify-between items-center mb-3">
           <button onclick="toggleSection('todoContent', 'todoIcon')" class="flex items-center gap-2 group text-left">
@@ -235,7 +291,6 @@
       </div>
     </aside>
 
-    <!-- Calendar Grid -->
     <main class="flex-1 bg-white overflow-y-auto relative flex flex-col">
       <div id="dayHeader" class="grid grid-cols-[80px_1fr_1fr_1fr_1fr_1fr_1fr_1fr] sticky top-0 bg-white border-b z-[60] shrink-0 shadow-sm">
         <div class="border-r bg-white"></div>
@@ -253,7 +308,7 @@
 <div id="todoModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[200]">
   <div class="bg-white p-8 rounded-3xl w-96 shadow-2xl">
     <h3 class="text-xl font-bold mb-4 text-slate-800">새 할 일 추가</h3>
-    <input type="text" id="todoInput" class="w-full border-slate-200 border p-4 rounded-2xl mb-6 focus:outline-none focus:ring-2 focus:ring-emerald-200 transition" placeholder="무엇을 해야 하나요?">
+    <input type="text" id="todoInput" class="w-full border-slate-200 border p-4 rounded-2xl mb-6 focus:outline-none focus:ring-2 focus:ring-[#0CEFD3] transition" placeholder="무엇을 해야 하나요?">
     <div class="flex justify-end gap-3">
       <button id="closeTodoBtn" class="px-6 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-2xl transition">취소</button>
       <button id="confirmAddTodo" class="px-6 py-3 mint-bg text-slate-900 font-bold rounded-2xl transition hover:opacity-90">추가하기</button>
@@ -262,24 +317,67 @@
 </div>
 
 <div id="eventModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[200]">
-  <div class="bg-white p-8 rounded-3xl w-96 shadow-2xl">
+  <div class="bg-white p-8 rounded-3xl w-[450px] shadow-2xl">
     <div class="flex items-center gap-3 mb-2">
-      <div class="w-2 h-6 mint-bg rounded-full"></div>
+      <div id="modalColorPreview" class="w-2 h-6 sig-bg rounded-full"></div>
       <h3 class="text-xl font-bold text-slate-800">일정 추가</h3>
     </div>
     <p id="eventModalTime" class="text-sm text-slate-400 mb-6 font-bold pl-5"></p>
-    <input type="text" id="eventTitleInput" class="w-full border-slate-200 border p-4 rounded-2xl mb-6 focus:outline-none focus:ring-2 focus:ring-emerald-200 transition" placeholder="일정 이름을 입력하세요.">
-    <div class="flex justify-end gap-3">
+
+    <div class="mb-6 pl-5">
+      <label class="text-xs font-bold text-slate-400 uppercase block mb-3">Color</label>
+      <div class="flex gap-3">
+        <div class="color-dot active" data-color="#FFDFD3" style="background-color: #FFDFD3;"></div>
+        <div class="color-dot" data-color="#D0F0C0" style="background-color: #D0F0C0;"></div>
+        <div class="color-dot" data-color="#B2E2F2" style="background-color: #B2E2F2;"></div>
+        <div class="color-dot" data-color="#E1CCFF" style="background-color: #E1CCFF;"></div>
+        <div class="color-dot" data-color="#FFF9C4" style="background-color: #FFF9C4;"></div>
+      </div>
+    </div>
+
+    <div class="mb-6 pl-5">
+      <label class="text-xs font-bold text-slate-400 uppercase block mb-3">Repeat on</label>
+      <div class="day-selector" id="recurringDaySelector">
+        <div class="day-btn" data-day="0">일</div>
+        <div class="day-btn" data-day="1">월</div>
+        <div class="day-btn" data-day="2">화</div>
+        <div class="day-btn" data-day="3">수</div>
+        <div class="day-btn" data-day="4">목</div>
+        <div class="day-btn" data-day="5">금</div>
+        <div class="day-btn" data-day="6">토</div>
+      </div>
+    </div>
+
+    <div class="pl-5 pr-5">
+      <input type="text" id="eventTitleInput" class="w-full border-slate-200 border p-4 rounded-2xl mb-6 focus:outline-none focus:ring-2 focus:ring-[#0CEFD3] transition" placeholder="일정 이름을 입력하세요.">
+    </div>
+
+    <div class="flex justify-end gap-3 px-5">
       <button id="closeEventBtn" class="px-6 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-2xl transition">취소</button>
       <button id="confirmAddEvent" class="px-6 py-3 mint-bg text-slate-900 font-bold rounded-2xl transition hover:opacity-90">스케줄 등록</button>
     </div>
   </div>
 </div>
 
+<!-- Deletion Confirmation Modal -->
+<div id="deleteConfirmModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[250]">
+  <div class="bg-white p-8 rounded-3xl w-[380px] shadow-2xl">
+    <h3 class="text-xl font-bold mb-4 text-slate-800">일정 삭제</h3>
+    <p id="deleteMsg" class="text-slate-500 mb-6 text-sm leading-relaxed">이 일정을 어떻게 삭제할까요?</p>
+    <div id="deleteButtonsGroup" class="flex flex-col gap-2">
+      <button id="deleteOnlyThisBtn" class="w-full py-3.5 bg-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-200 transition">이 일정만 삭제</button>
+      <button id="deleteAllBtn" class="w-full py-3.5 bg-rose-50 text-rose-600 font-bold rounded-2xl hover:bg-rose-100 transition">전체 반복 삭제</button>
+      <button id="deleteNormalBtn" class="hidden w-full py-3.5 bg-rose-50 text-rose-600 font-bold rounded-2xl hover:bg-rose-100 transition">삭제하기</button>
+      <button id="cancelDeleteBtn" class="w-full py-3.5 text-slate-400 font-bold rounded-2xl hover:bg-slate-50 transition mt-1">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase Scripts -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
   import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-  import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+  import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, updateDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
   const firebaseConfig = JSON.parse(__firebase_config);
   const app = initializeApp(firebaseConfig);
@@ -289,7 +387,7 @@
 
   let user = null;
   let currentViewDate = new Date(2026, 1, 24);
-  let selectedDate = getLocalDateString(new Date()); // 기본값 오늘
+  let selectedDate = getLocalDateString(new Date());
   let isSyncMode = false;
   let googleEvents = [];
   let personalEvents = [];
@@ -297,14 +395,19 @@
   let isDragging = false;
   let dragStart = null;
   let pendingEvent = null;
+  let selectedEventColor = "#FFDFD3";
+  let selectedRecurringDays = [];
+
+  let eventToDelete = null;
+  let dateToDeleteStr = null;
 
   const calendarId = "2oi02icg7huimmnl5man1f8n2k@group.calendar.google.com";
+  const START_DATE = new Date(2026, 1, 24);
+  const END_DATE = new Date(2026, 11, 11);
   const SLOT_HEIGHT = 35;
   const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  // Firestore Unsubscribe functions
   let unsubscribeTodos = null;
-  let unsubscribeGoal = null;
 
   function updateDayCount() {
     const now = new Date();
@@ -320,8 +423,10 @@
   }
 
   window.toggleSection = (contentId, iconId) => {
-    document.getElementById(contentId).classList.toggle('collapsed');
-    document.getElementById(iconId).classList.toggle('collapsed');
+    const content = document.getElementById(contentId);
+    const icon = document.getElementById(iconId);
+    if(content) content.classList.toggle('collapsed');
+    if(icon) icon.classList.toggle('collapsed');
   };
 
   window.toggleMainSidebar = () => {
@@ -348,7 +453,6 @@
 
   function setupFirestoreEventsListener() {
     if (!user) return;
-    // Events are for all dates in view, so we fetch all
     const eventsQuery = collection(db, 'artifacts', appId, 'users', user.uid, 'personalEvents');
     onSnapshot(eventsQuery, (snapshot) => {
       personalEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -359,14 +463,11 @@
   function setupDateSpecificListeners() {
     if (!user) return;
     if (unsubscribeTodos) unsubscribeTodos();
-    if (unsubscribeGoal) unsubscribeGoal();
 
-    // UI Label update
     const shortDate = selectedDate.split('-').slice(1).join('.');
-    document.getElementById('sidebarDateLabelGoal').innerText = shortDate;
+    document.getElementById('sidebarDateLabelSchedule').innerText = shortDate;
     document.getElementById('sidebarDateLabelTodo').innerText = shortDate;
 
-    // Todos Listener (Rule 2: Fetch all and filter in JS if complex, but simple filter is okay)
     const todosQuery = collection(db, 'artifacts', appId, 'users', user.uid, 'todos');
     unsubscribeTodos = onSnapshot(todosQuery, (snapshot) => {
       const allTodos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -374,18 +475,7 @@
       renderTodos();
     });
 
-    // Daily Goal Listener
-    const goalDoc = doc(db, 'artifacts', appId, 'users', user.uid, 'dailyGoals', selectedDate);
-    unsubscribeGoal = onSnapshot(goalDoc, (snapshot) => {
-      const textarea = document.getElementById('dailyGoalText');
-      if (snapshot.exists()) {
-        textarea.value = snapshot.data().text;
-      } else {
-        textarea.value = "";
-      }
-    });
-
-    // Re-render grid to update highlight
+    renderOfficialScheduleList();
     renderGrid();
   }
 
@@ -415,6 +505,7 @@
     } catch (err) { console.error("iCal Fetch Error:", err); }
     if (loader) loader.classList.add('hidden');
     renderEvents();
+    renderOfficialScheduleList();
   }
 
   function parseICS(icsText) {
@@ -505,17 +596,22 @@
     for(let i=0; i<7; i++) {
       const dayDate = new Date(startOfWeek); dayDate.setDate(dayDate.getDate() + i);
       const dayStr = getLocalDateString(dayDate);
+      const dayOfWeek = dayDate.getDay();
       const isSelected = dayStr === selectedDate;
       const isToday = dayDate.toDateString() === new Date().toDateString();
 
+      let weekendClass = "";
+      if (dayOfWeek === 0 || dayOfWeek === 6) weekendClass = "col-sun";
+
       const hCell = document.createElement('div');
-      hCell.className = `p-3 border-r text-center day-header-cell ${isSelected ? 'selected' : (isToday ? 'bg-slate-50' : '')}`;
-      hCell.innerHTML = `<div class="text-[10px] ${isSelected || isToday ? 'mint-text font-bold' : 'text-slate-400'} uppercase">${DAY_NAMES[dayDate.getDay()]}</div><div class="text-lg font-bold ${isSelected || isToday ? 'mint-text' : 'text-slate-800'}">${dayDate.getDate()}</div>`;
+      hCell.className = `p-3 border-r text-center day-header-cell ${isSelected ? 'selected' : (isToday ? 'bg-emerald-50' : weekendClass || 'bg-white')}`;
+      let dayNameColor = isSelected ? 'mint-text' : (dayOfWeek === 0 ? 'text-rose-500' : (dayOfWeek === 6 ? 'text-blue-500' : 'text-slate-400'));
+      hCell.innerHTML = `<div class="text-[10px] ${dayNameColor} uppercase font-bold">${DAY_NAMES[dayOfWeek]}</div><div class="text-lg font-bold ${isSelected ? 'mint-text' : 'text-slate-800'}">${dayDate.getDate()}</div>`;
       hCell.onclick = () => { selectedDate = dayStr; setupDateSpecificListeners(); };
       dayHeader.appendChild(hCell);
 
       const col = document.createElement('div');
-      col.className = "col-span-1 border-r relative day-column bg-white cursor-pointer";
+      col.className = `col-span-1 border-r relative day-column cursor-pointer ${weekendClass || 'bg-white'}`;
       col.dataset.dayIdx = i;
       col.onclick = (e) => {
         if(e.target === col || e.target.classList.contains('time-slot')) {
@@ -541,12 +637,10 @@
   }
 
   function startDrag(dayIdx, slotIdx, dateStr) {
-    // Drag might also trigger date selection
     selectedDate = dateStr;
     setupDateSpecificListeners();
-
     isDragging = true;
-    dragStart = { dayIdx, slotIdx, dateStr };
+    dragStart = { dayIdx, slotIdx, dateStr, dayOfWeek: new Date(dateStr).getDay() };
     updateDragUI(slotIdx);
   }
 
@@ -560,7 +654,9 @@
     const sIdx = Math.min(dragStart.slotIdx, currentSlot);
     const eIdx = Math.max(dragStart.slotIdx, currentSlot);
     const col = document.querySelector(`.day-column[data-day-idx="${dragStart.dayIdx}"]`);
-    for(let i=sIdx; i<=eIdx; i++) if (col && col.children[i]) col.children[i].classList.add('dragging');
+    if(col) {
+      for(let i=sIdx; i<=eIdx; i++) if (col.children[i]) col.children[i].classList.add('dragging');
+    }
   }
 
   function finalizeDrag() {
@@ -575,19 +671,36 @@
 
     pendingEvent = {
       dayIdx: dragStart.dayIdx,
+      dayOfWeek: dragStart.dayOfWeek,
       startHour, duration: durationHours,
       date: dragStart.dateStr
     };
-    const modal = document.getElementById('eventModal');
+
+    selectedRecurringDays = [];
+    document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('eventTitleInput').value = '';
+    document.getElementById('confirmAddEvent').disabled = true;
     document.getElementById('eventModalTime').innerText = `${formatHour(startHour)} - ${formatHour(startHour + durationHours)}`;
-    modal.classList.remove('hidden');
+
+    document.getElementById('eventModal').classList.remove('hidden');
     document.getElementById('eventTitleInput').focus();
   }
+
+  document.getElementById('eventTitleInput').oninput = (e) => {
+    const btn = document.getElementById('confirmAddEvent');
+    btn.disabled = e.target.value.trim().length === 0;
+  };
 
   window.savePendingEvent = async () => {
     const titleInput = document.getElementById('eventTitleInput');
     if (titleInput.value.trim() && pendingEvent && user) {
-      const eventData = { ...pendingEvent, title: titleInput.value.trim() };
+      const eventData = {
+        ...pendingEvent,
+        title: titleInput.value.trim(),
+        color: selectedEventColor,
+        recurringDays: selectedRecurringDays,
+        excludedDates: []
+      };
       const eventRef = doc(collection(db, 'artifacts', appId, 'users', user.uid, 'personalEvents'));
       await setDoc(eventRef, eventData);
       closeEventModal();
@@ -596,7 +709,6 @@
 
   window.closeEventModal = () => {
     document.getElementById('eventModal').classList.add('hidden');
-    document.getElementById('eventTitleInput').value = '';
     document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('dragging'));
     pendingEvent = null;
   };
@@ -615,26 +727,147 @@
 
     const create = (ev, type) => {
       const evD = new Date(ev.date + "T00:00:00");
-      const diff = Math.round((evD - sow) / (1000 * 60 * 60 * 24));
-      if (diff >= 0 && diff < 7 && ev.startHour >= 9) {
-        const card = document.createElement('div');
-        card.className = `event-card ${type === 'google' ? 'official-event' : 'personal-event pointer-events-auto'}`;
-        card.style.top = `${(ev.startHour - 9) * SLOT_HEIGHT * 2 + 1}px`;
-        card.style.height = `${ev.duration * SLOT_HEIGHT * 2 - 2}px`;
-        card.style.left = `calc(${diff * (100/7)}% + 4px)`;
-        card.style.width = `calc(${(100/7)}% - 8px)`;
-        card.innerHTML = `<div class="font-bold truncate leading-tight w-full">${ev.title}</div>${type === 'personal' ? `<button onclick="window.delEv(event, '${ev.id}')" class="absolute top-1 right-1 opacity-40 hover:opacity-100 transition"><i class="fas fa-times-circle text-[10px]"></i></button>` : ''}`;
-        container.appendChild(card);
+      let daysToRender = [];
+      if (type === 'personal' && ev.recurringDays && ev.recurringDays.length > 0) {
+        daysToRender = ev.recurringDays;
+      } else {
+        const diff = Math.round((evD - sow) / (1000 * 60 * 60 * 24));
+        daysToRender = [diff];
       }
+
+      daysToRender.forEach(diff => {
+        if (diff >= 0 && diff < 7 && ev.startHour >= 9) {
+          const dateOfInstance = new Date(sow);
+          dateOfInstance.setDate(dateOfInstance.getDate() + diff);
+          const dateStr = getLocalDateString(dateOfInstance);
+          if (ev.excludedDates && ev.excludedDates.includes(dateStr)) return;
+
+          const card = document.createElement('div');
+          card.className = `event-card ${type === 'google' ? 'official-event' : 'personal-event pointer-events-auto'}`;
+          card.style.top = `${(ev.startHour - 9) * SLOT_HEIGHT * 2 + 1}px`;
+          card.style.height = `${ev.duration * SLOT_HEIGHT * 2 - 2}px`;
+          card.style.left = `calc(${diff * (100/7)}% + 4px)`;
+          card.style.width = `calc(${(100/7)}% - 8px)`;
+
+          if(type === 'personal') {
+            card.style.backgroundColor = ev.color || '#ffffff';
+            if(ev.recurringDays && ev.recurringDays.length > 0) {
+              card.innerHTML = `<div class="text-[8px] opacity-40 mb-0.5"><i class="fas fa-sync-alt"></i></div>`;
+            }
+          }
+
+          card.innerHTML += `<div class="font-bold truncate leading-tight w-full">${ev.title}</div>${type === 'personal' ? `<button onclick="window.delEv(event, '${ev.id}', '${dateStr}')" class="absolute top-1 right-1 opacity-40 hover:opacity-100 transition"><i class="fas fa-times-circle text-[10px]"></i></button>` : ''}`;
+          container.appendChild(card);
+        }
+      });
     };
     if (isSyncMode) googleEvents.forEach(e => create(e, 'google'));
     personalEvents.forEach(e => create(e, 'personal'));
   }
 
-  window.delEv = async (e, id) => {
+  // 공식 스케줄 체크리스트 렌더링 (자동 체크 로직 포함)
+  function renderOfficialScheduleList() {
+    const listContainer = document.getElementById('officialScheduleList');
+    if(!listContainer) return;
+    listContainer.innerHTML = '';
+
+    const todaySchedules = googleEvents.filter(ev => ev.date === selectedDate);
+
+    if (todaySchedules.length === 0) {
+      listContainer.innerHTML = '<p class="text-xs text-slate-400 italic py-2">일정이 없습니다.</p>';
+      return;
+    }
+
+    const now = new Date();
+    const todayStr = getLocalDateString(now);
+    const currentHour = now.getHours() + (now.getMinutes() / 60);
+
+    // 시간순 정렬
+    todaySchedules.sort((a, b) => a.startHour - b.startHour).forEach(ev => {
+      const endHour = ev.startHour + ev.duration;
+
+      // 자동 체크 조건:
+      // 1. 선택된 날짜가 오늘보다 이전인가? -> 무조건 체크
+      // 2. 오늘인가? -> 현재 시간이 일정 종료 시간보다 지났는가? -> 체크
+      // 3. 선택된 날짜가 미래인가? -> 체크 안함
+      let isPassed = false;
+      if (selectedDate < todayStr) isPassed = true;
+      else if (selectedDate === todayStr) isPassed = currentHour >= endHour;
+
+      const item = document.createElement('div');
+      item.className = `schedule-item ${isPassed ? 'checked' : ''}`;
+      item.innerHTML = `
+                    <div class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full border ${isPassed ? 'bg-emerald-400 border-emerald-400 text-white' : 'border-slate-200'}">
+                        ${isPassed ? '<i class="fas fa-check text-[10px]"></i>' : ''}
+                    </div>
+                    <div class="flex flex-col overflow-hidden">
+                        <span class="truncate">${ev.title}</span>
+                        <span class="text-[10px] text-slate-400 font-normal italic">${formatHour(ev.startHour)} - ${formatHour(endHour)}</span>
+                    </div>
+                `;
+      listContainer.appendChild(item);
+    });
+  }
+
+  window.delEv = (e, id, dateStr) => {
     e.stopPropagation();
-    if (user) await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'personalEvents', id));
+    const event = personalEvents.find(ev => ev.id === id);
+    if (!event || !user) return;
+
+    eventToDelete = event;
+    dateToDeleteStr = dateStr;
+
+    const modal = document.getElementById('deleteConfirmModal');
+    const msg = document.getElementById('deleteMsg');
+    const onlyBtn = document.getElementById('deleteOnlyThisBtn');
+    const allBtn = document.getElementById('deleteAllBtn');
+    const normalBtn = document.getElementById('deleteNormalBtn');
+
+    modal.classList.remove('hidden');
+
+    if (event.recurringDays && event.recurringDays.length > 0) {
+      msg.innerText = `"${event.title}"은(는) 반복되는 일정입니다. 어떻게 삭제할까요?`;
+      onlyBtn.classList.remove('hidden');
+      allBtn.classList.remove('hidden');
+      normalBtn.classList.add('hidden');
+    } else {
+      msg.innerText = `"${event.title}" 일정을 삭제하시겠습니까?`;
+      onlyBtn.classList.add('hidden');
+      allBtn.classList.add('hidden');
+      normalBtn.classList.remove('hidden');
+    }
   };
+
+  const closeDeleteModal = () => {
+    document.getElementById('deleteConfirmModal').classList.add('hidden');
+    eventToDelete = null;
+    dateToDeleteStr = null;
+  };
+
+  document.getElementById('deleteOnlyThisBtn').onclick = async () => {
+    if (eventToDelete && dateToDeleteStr && user) {
+      const excluded = eventToDelete.excludedDates || [];
+      excluded.push(dateToDeleteStr);
+      await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'personalEvents', eventToDelete.id), { excludedDates: excluded });
+    }
+    closeDeleteModal();
+  };
+
+  document.getElementById('deleteAllBtn').onclick = async () => {
+    if (eventToDelete && user) {
+      await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'personalEvents', eventToDelete.id));
+    }
+    closeDeleteModal();
+  };
+
+  document.getElementById('deleteNormalBtn').onclick = async () => {
+    if (eventToDelete && user) {
+      await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'personalEvents', eventToDelete.id));
+    }
+    closeDeleteModal();
+  };
+
+  document.getElementById('cancelDeleteBtn').onclick = closeDeleteModal;
 
   function renderTodos() {
     const c = document.getElementById('todoList'); c.innerHTML = '';
@@ -649,12 +882,7 @@
     const i = document.getElementById('todoInput');
     if (i.value.trim() && user) {
       const todoRef = doc(collection(db, 'artifacts', appId, 'users', user.uid, 'todos'));
-      await setDoc(todoRef, {
-        text: i.value.trim(),
-        completed: false,
-        createdAt: Date.now(),
-        date: selectedDate // Store for the selected date
-      });
+      await setDoc(todoRef, { text: i.value.trim(), completed: false, createdAt: Date.now(), date: selectedDate });
       i.value = ''; document.getElementById('todoModal').classList.add('hidden');
     }
   };
@@ -667,30 +895,65 @@
     if (user) await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'todos', id));
   };
 
-  // Initialize Page
-  updateDayCount();
+  document.querySelectorAll('.color-dot').forEach(dot => {
+    dot.onclick = () => {
+      document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+      selectedEventColor = dot.dataset.color;
+      document.getElementById('modalColorPreview').style.backgroundColor = selectedEventColor;
+    };
+  });
 
+  document.querySelectorAll('.day-btn').forEach(btn => {
+    btn.onclick = () => {
+      const day = parseInt(btn.dataset.day);
+      if (selectedRecurringDays.includes(day)) {
+        selectedRecurringDays = selectedRecurringDays.filter(d => d !== day);
+        btn.classList.remove('active');
+      } else {
+        selectedRecurringDays.push(day);
+        btn.classList.add('active');
+      }
+    };
+  });
+
+  updateDayCount();
   document.getElementById('startWoowacourseBtn').onclick = () => startApp(true);
   document.getElementById('startGuestBtn').onclick = () => startApp(false);
   document.getElementById('sidebarMainToggle').onclick = window.toggleMainSidebar;
-  document.getElementById('prevWeek').onclick = () => { currentViewDate.setDate(currentViewDate.getDate() - 7); renderAll(); if(isSyncMode) fetchCalendarData(); };
-  document.getElementById('nextWeek').onclick = () => { currentViewDate.setDate(currentViewDate.getDate() + 7); renderAll(); if(isSyncMode) fetchCalendarData(); };
+
+  document.getElementById('prevWeek').onclick = () => {
+    const newDate = new Date(currentViewDate);
+    newDate.setDate(newDate.getDate() - 7);
+    const startOfWeek = getStartOfWeek(newDate);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+    if (endOfWeek < new Date(2026, 1, 24)) return;
+    currentViewDate = newDate; renderAll(); if(isSyncMode) fetchCalendarData();
+  };
+  document.getElementById('nextWeek').onclick = () => {
+    const newDate = new Date(currentViewDate);
+    newDate.setDate(newDate.getDate() + 7);
+    const startOfWeek = getStartOfWeek(newDate);
+    if (startOfWeek > new Date(2026, 11, 11)) return;
+    currentViewDate = newDate; renderAll(); if(isSyncMode) fetchCalendarData();
+  };
+
   document.getElementById('addTodoBtn').onclick = () => document.getElementById('todoModal').classList.remove('hidden');
   document.getElementById('closeTodoBtn').onclick = () => document.getElementById('todoModal').classList.add('hidden');
   document.getElementById('confirmAddTodo').onclick = window.addTodo;
   document.getElementById('confirmAddEvent').onclick = window.savePendingEvent;
   document.getElementById('closeEventBtn').onclick = window.closeEventModal;
   document.getElementById('homeBtn').onclick = () => location.reload();
-  document.getElementById('dailyGoalText').onblur = async (e) => {
-    if (user) {
-      await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'dailyGoals', selectedDate), {
-        text: e.target.value
-      });
-    }
-  };
+
   window.onmouseup = finalizeDrag;
 
-  function renderAll() { renderHeader(); renderGrid(); renderTodos(); renderEvents(); }
+  // 실시간 업데이트를 위한 타이머 (1분마다 공식 스케줄 체크리스트 갱신)
+  setInterval(() => {
+    if(isSyncMode) renderOfficialScheduleList();
+  }, 60000);
+
+  function renderAll() { renderHeader(); renderGrid(); renderTodos(); renderEvents(); renderOfficialScheduleList(); }
 </script>
 </body>
 </html>
